@@ -3,8 +3,9 @@ import random
 import sys
 import time
 
+import socket
+import pickle
 import cv2
-import imutils
 import numpy
 import zmq
 from skimage.color import rgb2gray
@@ -15,8 +16,7 @@ def recv_array(socket, flags=0, copy=True, track=False):
     """recv a numpy array"""
     md = socket.recv_json(flags=flags)
     msg = socket.recv(flags=flags, copy=copy, track=track)
-    buf = memoryview(msg)
-    A = numpy.frombuffer(buf, dtype=md['dtype'])
+    A = numpy.frombuffer(msg, dtype=md['dtype'])
     return A.reshape(md['shape']), md['frame_num']
 
 
@@ -49,13 +49,15 @@ def consumer():
     while True:
         print("inside while loop")
         image, f_num = recv_array(consumer_receiver)
-        #consumer 2 received image.
         print(f_num, image)
-        #cnts,_ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        #cnts = imutils.grab_contours(cnts)
-        send_array(consumer_sender, image, f_num)
-        
-        # time.sleep(1)
+        _, cnts, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        poly = [None]*len(cnts)
+        boundryRect=[None]*len(cnts)
+        for i,c in enumerate(cnts):
+            poly[i] = cv2.approxPolyDP(c,3,True)
+            boundryRect[i] = cv2.boundingRect(poly[i]) 
+        send_msg = {'image' :boundryRect,'frame_num':f_num}
+        consumer_sender.send(pickle.dumps(send_msg))
 
 
 consumer()

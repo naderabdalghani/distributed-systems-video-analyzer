@@ -23,8 +23,7 @@ def recv_array(socket, flags=0, copy=True, track=False):
     """recv a numpy array"""
     md = socket.recv_json(flags=flags)
     msg = socket.recv(flags=flags, copy=copy, track=track)
-    buf = memoryview(msg)
-    A = numpy.frombuffer(buf, dtype=md['dtype'])
+    A = numpy.frombuffer(msg, dtype=md['dtype'])
     return A.reshape(md['shape']), md['frame_num']
 
 
@@ -43,11 +42,8 @@ def result_collector():
     results_sender1.connect("tcp://127.0.0.1:%s" % PUSH_PORT)
     results_sender2.connect("tcp://127.0.0.1:%s" % PUSH_PORT)
 
-    # results_receiver2 = context.socket(zmq.PULL)
-    # print(int(sys.argv[1]))
     while True:
         image, f_num = recv_array(results_receiver1)
-        # print("printing from collector 1")
         print(f_num, image)
         if(receiverSwitcher):
             send_array(results_sender1, image, f_num)
