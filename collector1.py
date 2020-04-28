@@ -2,6 +2,9 @@ import pprint
 import sys
 import time
 
+import socket
+import pickle
+
 import cv2
 import numpy
 import zmq
@@ -19,16 +22,7 @@ def send_array(socket, A, f_num, flags=0, copy=True, track=False):
     return socket.send(A, flags, copy=copy, track=track)
 
 
-def recv_array(socket, flags=0, copy=True, track=False):
-    """recv a numpy array"""
-    md = socket.recv_json(flags=flags)
-    msg = socket.recv(flags=flags, copy=copy, track=track)
-    A = numpy.frombuffer(msg, dtype=md['dtype'])
-    return A.reshape(md['shape']), md['frame_num']
-
-
 def result_collector():
-    print()
     PUSH_PORT = int(sys.argv[1])+2000
     print("I am collector #%s" % (PUSH_PORT))
     receiverSwitcher = True
@@ -43,8 +37,12 @@ def result_collector():
     results_sender2.connect("tcp://127.0.0.1:%s" % PUSH_PORT)
 
     while True:
-        image, f_num = recv_array(results_receiver1)
-        print(f_num, image)
+        recv_msg = pickle.loads(results_receiver1.recv())
+        image = recv_msg['image']
+        f_num = recv_msg['frame_num']
+
+        #image, f_num = recv_array(results_receiver1)
+        #print(f_num, image)
         if(receiverSwitcher):
             send_array(results_sender1, image, f_num)
             print("sender1\n")

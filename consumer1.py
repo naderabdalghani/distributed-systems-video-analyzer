@@ -3,30 +3,15 @@ import random
 import sys
 import time
 
+import socket
+import pickle
+
+
 import cv2
 import numpy
 import zmq
 from skimage.color import rgb2gray
 from skimage.filters import threshold_otsu
-
-
-def recv_array(socket, flags=0, copy=True, track=False):
-    """recv a numpy array"""
-    md = socket.recv_json(flags=flags)
-    msg = socket.recv(flags=flags, copy=copy, track=track)
-    A = numpy.frombuffer(msg, dtype=md['dtype'])
-    return A.reshape(md['shape']), md['frame_num']
-
-
-def send_array(socket, A, f_num, flags=0, copy=True, track=False):
-    """send a numpy array with metadata"""
-    md = dict(
-        dtype='uint8',
-        shape=A.shape,
-        frame_num=f_num,
-    )
-    socket.send_json(md, flags | zmq.SNDMORE)
-    return socket.send(A, flags, copy=copy, track=track)
 
 
 def consumer():
@@ -45,15 +30,16 @@ def consumer():
     consumer_sender.connect("tcp://127.0.0.1:%s" % PUSH_port)
 
     while True:
-        image, f_num = recv_array(consumer_receiver)
-        # image = recv_array(consumer_receiver)
+        recv_msg = pickle.loads(consumer_receiver.recv())
+        image = recv_msg['image']
+        f_num = recv_msg['frame_num']
+
         image = rgb2gray(image)
         thresh = threshold_otsu(image)  # Calculate The Best Threshold
         image = image > thresh  # Apply Threshold
-        send_array(consumer_sender, image, f_num)
-        # send_array(consumer_sender,image)
+        msg={'image':image,'frame_num':f_num}
+        consumer_sender.send(pickle.dumps(msg))
         print(f_num, image)
-        # time.sleep(1)
 
 
 consumer()

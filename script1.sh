@@ -14,7 +14,7 @@ pull=7500
 for (( k=0; k<$v; k+=2 ))
 do  
    portpull=`expr $pull + $thousand + $k`
-   python collector1.py  $portpull  >> collector1$k.txt&
+   python collector1.py  $portpull  &
    echo $portpull
 done
 
@@ -29,7 +29,7 @@ do
    fi
    echo $portP
    portPush=`expr $pull + $c`
-   python consumer1.py $portPush $portP >>consumer1$c.txt&
+   python consumer1.py $portPush $portP &
 done
 
-python producer1.py  $2 $1 $pull >>producer1.txt
+python producer1.py  $2 $1 $pull 

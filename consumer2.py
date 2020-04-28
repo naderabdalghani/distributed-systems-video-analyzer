@@ -20,17 +20,6 @@ def recv_array(socket, flags=0, copy=True, track=False):
     return A.reshape(md['shape']), md['frame_num']
 
 
-def send_array(socket, A, f_num, flags=0, copy=True, track=False):
-    """send a numpy array with metadata"""
-    md = dict(
-        dtype='uint8',
-        shape=A.shape,
-        frame_num=f_num,
-    )
-    socket.send_json(md, flags | zmq.SNDMORE)
-    return socket.send(A, flags, copy=copy, track=track)
-
-
 def consumer():
     context = zmq.Context()
     PULL_port = int(sys.argv[1])
@@ -47,7 +36,7 @@ def consumer():
     consumer_sender.connect("tcp://127.0.0.1:%s" % PUSH_port)
 
     while True:
-        print("inside while loop")
+        
         image, f_num = recv_array(consumer_receiver)
         print(f_num, image)
         _, cnts, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

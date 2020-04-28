@@ -2,20 +2,12 @@ import pprint
 import sys
 import time
 
+import socket
+import pickle
+
 import cv2
 import numpy as np
 import zmq
-
-
-def send_array(socket, A, f_num, flags=0, copy=True, track=False):
-    """send a numpy array with metadata"""
-    md = dict(
-        dtype='uint8',
-        shape=A.shape,
-        frame_num=f_num,
-    )
-    socket.send_json(md, flags | zmq.SNDMORE)
-    return socket.send(A, flags, copy=copy, track=track)
 
 
 def producer(path):
@@ -34,9 +26,10 @@ def producer(path):
     while success:
         success, image = vidcap.read()
         if (success == True):
-            send_array(zmq_sockets[count % (int(sys.argv[2]))], image, count)
+            msg={'image':image,'frame_num':count}
+            (zmq_sockets[count % (int(sys.argv[2]))]).send(pickle.dumps(msg))
         count += 1
-        print(count, image)
+        #print(count, image)
 
 
 path = sys.argv[1]
